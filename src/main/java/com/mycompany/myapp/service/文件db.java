@@ -39,9 +39,18 @@ public class 文件db {
 
 					String str;
 					while ((str = br.readLine()) != null) {
-
-						String skey = str.split(",")[0];
-						String svalue = str.split(",")[1];
+						/*
+						 * 21.尽量避免使用split
+						 * 除非是必须的，否则应该避免使用split，split由于支持正则表达式，所以效率比较低，如果是频繁的几十，
+						 * 几百万的调用将会耗费大量资源，如果确实需 要频繁的调用split，
+						 * 可以考虑使用apache的StringUtils.split(string,char)，频繁split的可以缓存结果。
+						 *     2019-01-11
+						*/
+//						String skey = str.split(",")[0];
+//						String svalue = str.split(",")[1];
+						String[] reslut = StringUtils.split(str, ",");
+						String skey = reslut[0];
+						String svalue = reslut[1];
 						map.put(skey, svalue);
 					}
 					System.out.println(map.toString());
