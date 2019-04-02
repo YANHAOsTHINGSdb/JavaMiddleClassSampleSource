@@ -1,10 +1,15 @@
 package com.mycompany.myapp.bean;
 
+
+
+import javax.validation.constraints.NotBlank;
+
 import lombok.Data;
 
 @Data
 
 public class 社員Bean {
+	@NotBlank(message = "不能为空")
 	String 番号;
 	String 姓名;
 	String 性別;
