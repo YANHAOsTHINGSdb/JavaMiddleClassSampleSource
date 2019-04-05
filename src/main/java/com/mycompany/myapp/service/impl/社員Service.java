@@ -4,36 +4,41 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
 import org.springframework.util.ObjectUtils;
 
-import com.mycompany.myapp.bean.検索Bean;
 import com.mycompany.myapp.bean.社員Bean;
+import com.mycompany.myapp.bean.社員検索Bean;
 import com.mycompany.myapp.service.文件db;
+import com.mycompany.myapp.service.親Service;
 
-public class 社員Service {
+public class 社員Service extends 親Service{
 
-	文件db file_db = new 文件db();
+	// "番号" 必须放在0号位，否则全件检索时会出问题
+	String[] fileName = { "番号", "姓名", "入社年月日", "生年月日", "性別", "契約種類", "削除年月日", "電話番号" };
 
-	public List<社員Bean> 検索社員_by検索Bean(検索Bean bean) {
+	文件db file_db = new 文件db("社员");
 
-		file_db.社員情報読み込み();
+	public List<社員Bean> 検索社員_by検索Bean(社員検索Bean bean) {
 
-		Map<String,List<String>> 中間結果IDList = get中間結果_by検索Bean(bean);
+		file_db.情報読み込み(fileName);
+
+		Map<String,List<String>> 中間結果IDList = get中間結果_by社員検索Bean(bean);
 
 		List<String> 最終結果IDList = get最終結果_by中間結果(中間結果IDList);
 
 		return 取得検索結果_by最終結果(最終結果IDList);
 	}
 
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private List<社員Bean> 取得検索結果_by最終結果(List<String> 最終結果idList) {
 
 		List<社員Bean> 社員BeanList = new ArrayList();
@@ -46,6 +51,7 @@ public class 社員Service {
 		return 社員BeanList;
 	}
 
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private 社員Bean 取得社員情報_by社員id(String 社員id) {
 
 		Map<String, Map> 大Map = file_db.getMap_data();
@@ -63,6 +69,8 @@ public class 社員Service {
 			Map<String, String> 小Map;
 
 			String 小Map名 = entry.getKey();
+
+			社員bean.setS_ID(社員id);
 
 			switch (小Map名) {
 
@@ -90,63 +98,24 @@ public class 社員Service {
 				小Map = entry.getValue();
 				社員bean.set契約種類(小Map.get(社員id));
 				break;
+			case "電話番号":
+				小Map = entry.getValue();
+				社員bean.set電話番号(小Map.get(社員id));
+				break;
 			}
 		}
 		return 社員bean;
 	}
 
-	private List<String> get最終結果_by中間結果(Map<String,List<String>> 中間結果List) {
-
-		List<String> 最終結果list = new ArrayList<String>();
-
-		Calc calc = null;
-
-		boolean isFirst = true;
-
-		//for (List<String> 中間List : 中間結果List) {
-		for (Entry<String, List<String>> 中間結果 : 中間結果List.entrySet()) {
-
-			List 中間List = 中間結果.getValue();
-			String sKey = 中間結果.getKey();
-
-			if (StringUtils.equals(sKey, "削除年月日")) {
-				calc = new NotCalc();
-			}else {
-				calc = new AndCalc();
-			}
-
-			// 如果中間結果为空，不需要进行論理計算，所以continue
-			if (中間List == null) {
-
-				continue;
-
-			}
-
-			// 第一个中間結果，不需要进行論理計算，所以continue
-			if (isFirst == true) {
-
-				最終結果list = new ArrayList<String>(中間List);
-				isFirst = false;
-
-				continue;
-			}
-
-			// 其他情况，需要进行【論理計算】
-			// 論理計算：
-			//           {1,2,3} and {2,3,4} = {2,3}
-			//           {1,2,3} or {2,3,4}  = {1,2,3,4}
-			//           {1,2,3} not {2,3,4} = {1}
-			//           {2,3,4} not {1,2,3} = {4}
-
-			最終結果list = calc.論理計算(最終結果list, 中間List);
-		}
-
-		return 最終結果list;
-	}
-
-	private Map<String,List<String>> get中間結果_by検索Bean(検索Bean bean) {
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	private Map<String,List<String>> get中間結果_by社員検索Bean(社員検索Bean bean) {
 
 		Map<String,List<String>> 中間結果list = new LinkedHashMap();
+		if (StringUtils.isNotEmpty(bean.getS_ID())) {
+
+			/*IDList_name = getIDList_byNameandValue("姓名", "Aさん");*/
+			中間結果list.put("ID",Arrays.asList(bean.getS_ID()));
+		}
 
 		if (StringUtils.isNotEmpty(bean.get番号())) {
 
@@ -194,11 +163,17 @@ public class 社員Service {
 
 			中間結果list.put("契約種類",getIDList_by小Map名andValue("契約種類", bean.get契約種類(), "=="));
 		}
+		if (StringUtils.isNotEmpty(bean.get電話番号())) {
+
+			中間結果list.put("電話番号",getIDList_by小Map名andValue("電話番号", bean.get電話番号(), "=="));
+		}
+
 
 		// 无条件检索时
 		if(allfieldIsNUll(bean)) {
 
-			中間結果list.put("番号",file_db.取得全員番号ID());
+			//中間結果list.put("ID",file_db.取得全部ID("番号"));
+			中間結果list.put("ID",file_db.取得全部ID(fileName[0]));
 		}
 
 		// 削除時の対応
@@ -319,25 +294,35 @@ public class 社員Service {
 
 	public String 追加社員_by社員Bean(社員Bean bean) {
 
-		文件db file_db = new 文件db();
-		String path;
-		String ID = null;
+		文件db file_db = new 文件db("社员");
 
-		file_db.社員情報読み込み();
-		if (!StringUtils.isEmpty(file_db.取得社員ID_by社員番号(bean.get番号()))) {
+		// ①チェック入力
+		file_db.情報読み込み(fileName);
+		if (!StringUtils.isEmpty(file_db.取得指定情报_by項目名_ID("番号", bean.getS_ID()))) {
 			return "社員番号はすでに登録されている。";
 		}
 
-		try {
+		// ②追加処理
+		追加社員_byFile_db_社員Bean(file_db, bean);
 
-			ID = file_db.採番(file_db.getSPath() + "\\" + "番号" + ".txt")+1 +"";
+
+		return "";
+	}
+
+	private void 追加社員_byFile_db_社員Bean(文件db file_db2, 社員Bean bean) {
+
+		String path;
+		String ID = null;
+		try {
+			// ①採番
+			ID = file_db.採番(file_db.getSPath() +  "番号" + ".txt") + 1 +"";
 
 		} catch (IOException e) {
 
 			e.printStackTrace();
 		}
 
-		for(String s文件名 : file_db.getFileName()) {
+		for(String s文件名 : fileName) {
 
 			path = file_db.getSPath() +  s文件名 + ".txt";
 
@@ -384,19 +369,27 @@ public class 社員Service {
 					file_db.文件書込(path, ID + "," + bean.get生年月日());
 				}
 				break;
-			}
-		}
 
-		return "";
+			case "電話番号":
+
+				if(!StringUtils.isEmpty(bean.get電話番号())) {
+					file_db.文件書込(path, ID + "," + bean.get電話番号());
+				}
+				break;
+
+			}
+
+
+		}
 	}
 
 	public void 更新社員_by社員Bean(社員Bean bean) {
 		// 更新时
 		// 将最新信息追加到指定文件
-		文件db file_db = new 文件db();
+		文件db file_db = new 文件db("社员");
 		//String ID = bean.getOld_番号();
-		file_db.社員情報読み込み();
-		String ID = file_db.取得社員ID_by社員番号(bean.getOld_番号());
+		file_db.情報読み込み(fileName);
+		String ID = bean.getS_ID();
 
 		if(!StringUtils.equals(bean.getOld_入社年月日(), bean.get入社年月日())) {
 			String path = file_db.getSPath() +  "入社年月日.txt";
@@ -410,6 +403,11 @@ public class 社員Service {
 		if(!StringUtils.equals(bean.getOld_姓名(), bean.get姓名())) {
 			String path = file_db.getSPath() +  "姓名.txt";
 			file_db.文件書込(path, ID + "," + bean.get姓名());
+
+		}
+		if(!StringUtils.equals(bean.getOld_電話番号(), bean.get電話番号())) {
+			String path = file_db.getSPath() +  "電話番号.txt";
+			file_db.文件書込(path, ID + "," + bean.get電話番号());
 
 		}
 		if(!StringUtils.equals(bean.getOld_性別(), bean.get性別())) {
@@ -428,8 +426,8 @@ public class 社員Service {
 		String path = file_db.getSPath() +  "削除年月日.txt";
 		//String ID = bean.getOld_番号();
 
-		file_db.社員情報読み込み();
-		String ID = file_db.取得社員ID_by社員番号(bean.get番号());
+		file_db.情報読み込み(fileName);
+		String ID = bean.getS_ID();
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyy/MM/dd");//设置日期格式
 		String sDate = df.format(new Date()).toString();// new Date()为获取当前系统时间

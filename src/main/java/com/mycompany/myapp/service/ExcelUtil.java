@@ -90,7 +90,7 @@ public class ExcelUtil {
 		response.setContentType("application/x-msdownload");
 		fileName = fileName + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
 		response.setHeader("Content-disposition",
-				"attachment; filename=" + new String(fileName.getBytes("gb2312"), "ISO-8859-1") + ".xls");
+				"attachment; filename=" + new String(fileName.getBytes("utf-8"), "ISO-8859-1") + ".xls");
 		ServletOutputStream outStream = null;
 		try {
 			outStream = response.getOutputStream();

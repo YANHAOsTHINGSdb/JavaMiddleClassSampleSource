@@ -28,8 +28,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 
-import com.mycompany.myapp.bean.検索Bean;
 import com.mycompany.myapp.bean.社員Bean;
+import com.mycompany.myapp.bean.社員検索Bean;
 import com.mycompany.myapp.service.impl.社員Service;
 
 import cn.afterturn.easypoi.excel.ExcelExportUtil;
@@ -57,14 +57,14 @@ public class HomeController {
 
 		model.addAttribute("serverTime", formattedDate );
 
-		return "home";
+		return "社員検索";
 	}
 	/**
 	 * テストデータの配列を返却する。
 	 */
 	@RequestMapping(value = "getTestData", method = RequestMethod.POST)
 	@ResponseBody //将返回结果转成Json
-	public List<社員Bean> getTestData(@RequestBody 検索Bean 検索bean) {//@RequestBody 将Json转成Java对象
+	public List<社員Bean> getTestData(@RequestBody 社員検索Bean 検索bean) {//@RequestBody 将Json转成Java对象
 
 	    logger.info("call getTestData");
 	    List<社員Bean> result = new ArrayList<社員Bean>();
@@ -242,7 +242,9 @@ public class HomeController {
         easyPOIModel14 = null ;
         // 设置导出配置
         // 获取导出excel指定模版
-        TemplateExportParams params = new TemplateExportParams("d:/项目测试文件夹/easypoiExample.xlsx");
+        TemplateExportParams params =
+        		new TemplateExportParams(
+        				"/Users/haoyan/Desktop/data/template/template社員情報明細表.xlsx");
         // 标题开始行
         // params.setHeadingStartRow(0);
         // 标题行数
